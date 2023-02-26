@@ -1,38 +1,46 @@
-#include "main.h"
+#include "shell.h"
 
-int main(int argc, char **arg)
+/**
+ * main - entry point
+ * @ac: arg count
+ * @av: arg vector
+ *
+ * Return: 0 on success, 1 on error
+ */
+int main(int ac, char **av)
 {
-	char *cmd;
-	char **argv;
-	int i;
+	info_t info[] = { INFO_INIT };
+	int fd = 2;
 
-	
-	(void)argc;
+	asm ("mov %1, %0\n\t"
+		"add $3, %0"
+		: "=r" (fd)
+		: "r" (fd));
 
-	while (1)
+	if (ac == 2)
 	{
-	cmd = get_line();
-	if (strcmp(cmd, "exit\n") == 0)
-		exit(0);
-	if (cmd[0] == '\n')
-		continue;
-	argv = make_array(cmd, strlen(cmd));
-	if (argv == NULL)
-	{
-		perror( arg[0]);
-		return (-1);
+		fd = open(av[1], O_RDONLY);
+		if (fd == -1)
+		{
+			if (errno == EACCES)
+				exit(126);
+			if (errno == ENOENT)
+			{
+				_eputs(av[0]);
+				_eputs(": 0: Can't open ");
+				_eputs(av[1]);
+				_eputchar('\n');
+				_eputchar(BUF_FLUSH);
+				exit(127);
+			}
+			return (EXIT_FAILURE);
+		}
+		info->readfd = fd;
 	}
-
-
-	execmd(argv);
-	}
-	for(i = 0; argv[i] != NULL; i++)
-	;
-	i++;
-	for(; i >= 0; i--)
-	free(argv[i]);
-
-	free(argv);
-	free(cmd);
-	return (0);
+	populate_env_list(info);
+	read_history(info);
+	hsh(info, av);
+	return (EXIT_SUCCESS);
 }
+
+/* Oga Segun Pls delete this line */
